@@ -6,12 +6,13 @@ PImage bg;
 PImage birb;
 PImage pipe;
 PImage pipeB;
-
+PImage gameOver;
 int pipeH;// -300 to -50
 int gap = 500;
 int clock = 0;
 int dx = -5;
 int dy = -10;
+int mode =1; //0 for loading, 1 for game, 2 for game over
 Sprite bird;
 ArrayList<Sprite> images = new ArrayList<Sprite>();
 Serial myPort;
@@ -23,45 +24,53 @@ void setup()
   size(displayWidth, displayHeight);
 
   bg =  loadImage("flappy background.png"); //load images
-  birb =  loadImage("transparentautismo.png");
+  birb =  loadImage("bird.png");
   pipe = loadImage("pipe.png");
   pipeB = loadImage("inverted_pipe.png");
-
+  gameOver = loadImage("gameOver.png");
   bird = new Sprite(0, displayHeight/2, birb);
   images.add(bird);
 
-  String portName = Serial.list()[2];
-  myPort = new Serial(this, portName, 9600);
-  myPort.bufferUntil('\n');
+  //String portName = Serial.list()[2];
+  //myPort = new Serial(this, portName, 9600);
+  //myPort.bufferUntil('\n');
 }
 
 void draw()
 {
-  image(bg, 0, 0); //background
-  addPipes();
-  Iterator<Sprite> looper = images.iterator();
-  while (looper.hasNext())
-  {
-    Sprite c = looper.next();
-    if (!c.equals(bird))
+  if (mode == 1) {
+    image(bg, 0, 0); //background
+    addPipes();
+    Iterator<Sprite> looper = images.iterator();
+    while (looper.hasNext())
     {
-      if (c.x() < 0)
-        looper.remove();
-      else
+      Sprite c = looper.next();
+      if (!c.equals(bird))
       {
-        c.move(dx, 0);
+        if (c.x() < 0)
+          looper.remove();
+        else
+        {
+          c.move(dx, 0);
+        }
+      } else
+      {
+        if (jump)
+        {
+          c.move(0, dy);
+        } else if (c.y() == displayHeight)
+          mode = 2;
+        else
+          c.move(0, 2);
       }
-    } 
-    else
-    {
-      if (jump)
-        c.move(0, dy);
-      else
-        c.move(0,2);
+      image(c.img(), c.x(), c.y());
     }
-    image(c.img(), c.x(), c.y());
+    clock++;
   }
-  clock++;
+  if (mode == 2)
+  {
+    image(gameOver, 0, 0);
+  }
 }
 public void addPipes()
 {
@@ -72,7 +81,10 @@ public void addPipes()
     images.add(new Sprite(800, pipeH+gap, pipeB));
   }
 }
-
+void keyPressed()
+{
+  jump = true;
+}
 void serialEvent(Serial myPort)
 {
   String myString = myPort.readStringUntil('\n');
@@ -98,7 +110,9 @@ void serialEvent(Serial myPort)
 }
 void loop()
 {
-  serialEvent(myPort);
+  //serialEvent(myPort);
+  jump = false;
+  keyPressed();
 }
 
 class Sprite 
