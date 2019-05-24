@@ -83,7 +83,7 @@ public void addPipes()
 }
 void keyPressed()
 {
-  jump = true;
+  c.move(0,dy);
 }
 void serialEvent(Serial myPort)
 {
