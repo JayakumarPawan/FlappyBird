@@ -1,4 +1,4 @@
-import java.util.*;
+import java.util.*; //<>//
 import processing.serial.*;
 
 final int displayWidth =900;
@@ -6,10 +6,12 @@ final int displayHeight =504;
 Env env;
 boolean start;
 boolean jump;
+boolean reset;
 void setup()
 {
   size(displayWidth, displayHeight);
-  env = new Env();
+  reset =false;
+  env = new Env(reset);
   start = false;
   jump = false;
 }
@@ -24,28 +26,24 @@ void draw()
    paint on the screen
    update end of turn vars (clock)
    */
+
   jump = false;
   start = false;
+  if (keyPressed)
+  {
+    start = true;
+    jump = true;
+  }
+  reset = env.update(start, jump);
   for (Sprite s : env.sprites)
   {
-     image(s.img,s.x,s.y);
+    image(s.img, s.x, s.y);
   }
-  env.update();
 }
 void loop()
 {
-  if (env.bg[0] == env.sprites.get(0) && keyPressed)
-    start = true;
 }
 
-void mouseClicked()
-{
-  start = true;
-}
-void keyPressed()
-{
-  jump = true;
-}
 class Env
 {
   public int mode; // 0 for title screen 1 for playing screen 2 for game over
@@ -53,23 +51,23 @@ class Env
   Sprite[] bg;
   public ArrayList<Sprite> sprites;
   public Bird b;
-  boolean done;
-  public Env()
+  public Env(boolean reset)
   {
     mode = 0;
     clock = 0;
-    bg = new Sprite[3];
-    bg[0] = new Sprite(0, 0, loadImage("Images/finaltitle.png"));
+    bg = new Sprite[2];
+    if (reset)
+      bg[0] = new Sprite(0, 0, loadImage("Images/gameOver.png"));
+    else
+      bg[0] = new Sprite(0, 0, loadImage("Images/finaltitle.png"));
     bg[1] = new Sprite(0, 0, loadImage("Images/flappy background.png"));
-    bg[2] = new Sprite(0, 0, loadImage("Images/gameOver.png"));
     sprites = new ArrayList<Sprite>();
     sprites.add(bg[0]); // first array slot will be game mode ex: title screen
-    b = new Bird(0, displayHeight/2);
-    sprites.add(b);
+    b = new Bird();
   }
   public void genPipe()
   {
-    if (clock % 75 == 0)
+    if (clock % 70 == 0)
       sprites.add(new Pipe());
   }
   public void remPipe()
@@ -82,67 +80,83 @@ class Env
         looper.remove();
     }
   }
-  public void update()
+  public boolean update(boolean st, boolean j)
   {
+    if (st && mode == 0)
+    {
+      sprites.set(0, bg[1]);
+      mode = 1;
+    }
+    if (mode == 2)
+    {
+      return true;
+    }
+    if (mode ==1)
+    {
+      if (!sprites.contains(b))
+        sprites.add(b);
+      genPipe();
+      remPipe();
+      clock++;
+    }
     for (Sprite s : sprites)
     {
-      s.turn();
+      if (s.equals(b))
+      {
+        b.turn(j, clock);
+        if (b.y >= displayHeight)
+          mode = 2;
+      } else if (!s.equals(sprites.get(0)))
+      {
+        s.turn();
+        if (s.collision(b)  == true)
+        {
+          mode = 2;
+        }
+      }
     }
-    if (start && sprites.get(0) == bg[0])
-      sprites.set(0, bg[1]);
-    if (!start && sprites.get(0) == bg[2])
-      sprites.set(0, bg[0]);
-    if (done)
-      sprites.set(0, bg[2]);
-    genPipe();
-    remPipe();
-    clock++;
+    return false;
   }
 }
 class Pipe extends Sprite
 {
-  public int vx = -5;
-  public int vy = 0;
-  public PImage pipe_b = loadImage("Images/inverted_pipe.png");
-  public PImage pipe =   loadImage("Images/pipe.png");
-  public int gap = 500;
   public Pipe()
   {
-    x = 800;
-    y = int(random(-300, -50));
-  }
-
-  void turn()
-  { 
-    move(vx, vy);
+    super(800, -50/*int(random(-300, -50))*/, loadImage("Images/pipes.png"));
+    vx = -4;
   }
 }
 
 class Bird extends Sprite
 {
-  public int vx = 0;
-  public int vy = 0;
-  public int ay = -2;
-  public Bird(int xPos, int  yPos)
+  public int ay = 1;
+  public Bird()
   {
-    x = xPos;
-    y = yPos;
-    img =  loadImage("Images/bird.png");
-    w = img.width;
-    h =img.height;
+    super(0, displayHeight/2, loadImage("Images/bird.png"));
+    vy+=ay;
   }
-  void turn()
+  void turn(Boolean j, int clock)//crashed or not
   {
+    if (j)
+      vy = -10;
+    else if (vy < 0)
+      vy = -0;
+    else if (clock % 2 == 0)
+      vy+=ay;     
     move(vx, vy);
+    if (y <= 0)
+      y = 0;
   }
 }
 
 class Sprite 
 {
-  public int x;
+  public int x;//position on screen
   public int y;
-  public int w; //len
-  public int h; //height for hitbox
+  public int w; //width
+  public int h; //height 
+  public int vx;
+  public int vy;
   public PImage img; 
 
   public Sprite(int xpos, int ypos, PImage i)
@@ -152,10 +166,12 @@ class Sprite
     img = i;
     h = i.height;
     w = i.width;
+    vx = 0;
+    vy = 0;
   }
   void turn()
   {
-    move(0, 0);
+    move(vx, vy);
   }
   public Sprite()
   {
@@ -183,11 +199,11 @@ class Sprite
 
   public boolean collision(Sprite other)
   {
-    if (other.x < this.x+this.w && other.x > this.x)
-      return true;
-
-    if (other.y < this.y+this.h && other.y> this.y)
-      return true;
+    if(other.y < this.y+350 || other.y+other.h> this.y+540)
+    {
+      if (other.x < this.x+this.w && other.x > this.x)
+        return true;
+    }
     return false;
   }
 }
