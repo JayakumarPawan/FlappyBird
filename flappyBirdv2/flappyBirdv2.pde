@@ -39,6 +39,10 @@ void draw()
   {
     image(s.img, s.x, s.y);
   }
+  if(reset)
+  {
+    env = new Env(reset);
+  }
 }
 void loop()
 {
@@ -84,6 +88,7 @@ class Env
   {
     if (st && mode == 0)
     {
+      delay(2000);
       sprites.set(0, bg[1]);
       mode = 1;
     }
