@@ -1,24 +1,25 @@
-import java.util.*; //<>//
+//Title font "Impact" //<>//
+import java.util.*;
 import processing.serial.*;
-
+int score = 0;
 final int displayWidth =900;
 final int displayHeight =504;
 Env env;
 boolean start;
 boolean jump;
-boolean reset;
+PFont f;
 void setup()
 {
   size(displayWidth, displayHeight);
-  reset =false;
-  env = new Env(reset);
+  f = createFont("Impact", 45, false);
+  env = new Env();
   start = false;
   jump = false;
 }
 void draw()
 {
   /*
-  get user input
+  get user input  
    for each object:
    update object state
    update game state (if bird crashed or whatever)
@@ -26,7 +27,6 @@ void draw()
    paint on the screen
    update end of turn vars (clock)
    */
-
   jump = false;
   start = false;
   if (keyPressed)
@@ -34,14 +34,23 @@ void draw()
     start = true;
     jump = true;
   }
-  reset = env.update(start, jump);
+
+  textFont(f, 45);
+  fill(0);
+  for (int x = -2; x < 3; x++) {
+    for (int y = -2; y < 3; y++) {
+      text("Score: " + str(score), 700+x, 50+y);
+    }
+    text("Score: " + str(score), 700+x, 50);
+    text("Score: " + str(score), 700, 50+x);
+  }
+  fill(255);
+  text("Score: " + str(score), 700, 50);
+
+  env.update(start, jump);
   for (Sprite s : env.sprites)
   {
     image(s.img, s.x, s.y);
-  }
-  if(reset)
-  {
-    env = new Env(reset);
   }
 }
 void loop()
@@ -52,26 +61,25 @@ class Env
 {
   public int mode; // 0 for title screen 1 for playing screen 2 for game over
   public int clock;
-  Sprite[] bg;
+  public Sprite[] bg;
   public ArrayList<Sprite> sprites;
   public Bird b;
-  public Env(boolean reset)
+  public Env()
   {
-    mode = 0;
+    score =0;
     clock = 0;
-    bg = new Sprite[2];
-    if (reset)
-      bg[0] = new Sprite(0, 0, loadImage("Images/gameOver.png"));
-    else
-      bg[0] = new Sprite(0, 0, loadImage("Images/finaltitle.png"));
+    mode = 0;
+    bg = new Sprite[3];
+    bg[0] = new Sprite(0, 0, loadImage("Images/finaltitle.png"));
     bg[1] = new Sprite(0, 0, loadImage("Images/flappy background.png"));
+    bg[2]= new Sprite(0, 0, loadImage("Images/gameOver.png"));
     sprites = new ArrayList<Sprite>();
     sprites.add(bg[0]); // first array slot will be game mode ex: title screen
     b = new Bird();
   }
   public void genPipe()
   {
-    if (clock % 70 == 0)
+    if (clock % 75 == 0)
       sprites.add(new Pipe());
   }
   public void remPipe()
@@ -81,53 +89,59 @@ class Env
     {
       Sprite cur = looper.next();
       if (cur.x < 0)
+      {
         looper.remove();
+        score++;
+      }
     }
   }
-  public boolean update(boolean st, boolean j)
+  public void update(boolean st, boolean j)
   {
     if (st && mode == 0)
     {
-      delay(2000);
       sprites.set(0, bg[1]);
+      sprites.add(b);
       mode = 1;
-    }
-    if (mode == 2)
-    {
-      return true;
     }
     if (mode ==1)
     {
-      if (!sprites.contains(b))
-        sprites.add(b);
+
       genPipe();
       remPipe();
       clock++;
-    }
-    for (Sprite s : sprites)
-    {
-      if (s.equals(b))
+
+      for (Sprite s : sprites)
       {
-        b.turn(j, clock);
-        if (b.y >= displayHeight)
-          mode = 2;
-      } else if (!s.equals(sprites.get(0)))
-      {
-        s.turn();
-        if (s.collision(b)  == true)
+        if (s.equals(b))
         {
-          mode = 2;
+          b.turn(j, clock);
+          if (b.y >= displayHeight)
+          {
+            mode = 2;
+          }
+        } else if (!s.equals(sprites.get(0)))
+        {
+          s.turn();
+          if (s.collision(b)  == true)
+          {
+            mode =2;
+          }
         }
       }
     }
-    return false;
+    if (mode == 2)
+    {
+      sprites = new ArrayList<Sprite>();
+      sprites.add(bg[2]);
+      mode = 0;
+    }
   }
 }
 class Pipe extends Sprite
 {
   public Pipe()
   {
-    super(800, -50/*int(random(-300, -50))*/, loadImage("Images/pipes.png"));
+    super(800, -50 + int(random(-300, -50)), loadImage("Images/pipes.png"));
     vx = -4;
   }
 }
@@ -204,10 +218,12 @@ class Sprite
 
   public boolean collision(Sprite other)
   {
-    if(other.y < this.y+350 || other.y+other.h> this.y+540)
+    if (other.y < this.y+300 || other.y+other.h> this.y+540)
     {
       if (other.x < this.x+this.w && other.x > this.x)
+      {
         return true;
+      }
     }
     return false;
   }
