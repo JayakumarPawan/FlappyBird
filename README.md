@@ -1,2 +1,3 @@
-# flappyBird
-flappybird robo project
+# Flappybird with a custom integrated circuit controller
+
+As part of an introductory robotics course, we were tasked with creating a project which utilizes an integrated circuit. My partner and I decided to create a game controller to play our own version of the popular mobile game flappy bird. The software was written in Processing 3.0, a Java like language which is compatible with arduino microcontrollers. Since the integrated circuit imitates a keyboard press, the game can be played without the custom controller; however, the intent of the project was mostly to learn about designing and utilizing integrated circuits.
